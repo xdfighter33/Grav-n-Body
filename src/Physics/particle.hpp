@@ -7,7 +7,7 @@ struct Particle {
     glm::vec3 position;
     glm::vec3 velocity;
     glm::vec3 accel;
-    glm::vec3 force;
+    glm::vec3 force = glm::vec3(0);
     float mass;
 
 
@@ -17,20 +17,25 @@ struct Particle {
     void update(float dt){
 
            // Step 1: Update position
-        position += velocity * dt + 0.5f * accel * dt * dt;
+        position += velocity * dt + 0.5f *  accel *  dt * dt;
         
-        // Step 2: Compute velocity at mid-point
-        glm::vec3 vel_half = velocity + 0.5f * accel * dt;
+
+
+
+        glm::vec3 old_accel = accel;
+
         
         // Step 3: Compute new acceleration
-        accel = glm::vec3(0);
+        accel = force / mass;
         
         // Step 4: Compute new velocity
-        velocity = vel_half + 0.5f * accel * dt;
+        velocity +=  0.5f * accel * dt;
+        
+
         
         // Reset force for the next frame
         force = glm::vec3(0.0f);
-
+        //  velocity = glm::vec3(0.0f);
 
 
     };

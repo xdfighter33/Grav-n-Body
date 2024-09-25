@@ -74,18 +74,21 @@ public:
     void render_loop(window& Window,Simulation& sim){
         while(!glfwWindowShouldClose(Window.getWindow())){
 
-        sim.update();
+
+        sim.update();  
         renderParticles(sim);
-        
+
+  
         glfwSwapBuffers(Window.getWindow());
         glfwPollEvents();
 
 
         }
-
+       
 
         
     }
+
     void render(window& Window,Simulation& sim){
 
         renderParticles(sim);

@@ -50,7 +50,12 @@ std::string Model_VertexShaderPath   = std::string(SHADER_DIR) + "/vertex.glsl";
 
     // Add some particles to the simulation
     sim.addParticlesInSphere(100,5.0f,glm::vec3(0.0f,0.0f,0.0f));
+    // sim.initializeGalaxy(200,200,200);
     sim.setSubsStepscount(10);
-    sim.setSimulationUpdateRate(1);
+    sim.setSimulationUpdateRate(60);
+
+
+    // Render Loop
+    //Need to get inputs from the window
     renderer.render_loop(mainWindow,sim);
  }

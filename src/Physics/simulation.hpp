@@ -1,15 +1,26 @@
+#pragma once
 #include <glm/glm.hpp>
 #include "particle.hpp"
+#include "QuadTree.hpp"
+#include "QuadTreeSIMDMac.hpp"
+#include "../settings/multi_threading/thread_pool.hpp"
 #include <glm/gtc/random.hpp>
 #include <random>
 #include <cmath>
 
 class Simulation{
 
-
-
-
+    private:
+        Octree octree;
+        float g = 5;
+        OctreeNeon oct;
+        // tp::ThreadPool tp;
     public:
+
+    Simulation(float theta = 0.5) : 
+
+    octree(theta)
+    {}
 
 
     void add_Particle(glm::vec3 pos,glm::vec3 vel){
@@ -53,6 +64,49 @@ class Simulation{
   
         }
     }
+
+    void addSpiralGalaxy(int numParticles, float galaxyRadius, float armWidth, int numArms, const glm::vec3& center) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> radiusDis(0.0, 1.0);
+        std::uniform_real_distribution<> thetaDis(0.0, 2.0 * M_PI);
+        std::normal_distribution<> heightDis(0.0, 0.1 * galaxyRadius);
+
+        float armSeparation = 2.0 * M_PI / numArms;
+        float spiralTightness = 0.5;
+
+        for (int i = 0; i < numParticles; ++i) {
+            float r = galaxyRadius * std::sqrt(radiusDis(gen));
+            float theta = thetaDis(gen);
+            
+            // Spiral arm offset
+            float spiralOffset = spiralTightness * r;
+            int arm = static_cast<int>(theta / armSeparation);
+            theta += arm * armSeparation + spiralOffset;
+
+            // Add some fuzziness to the arm
+            float fuzziness = armWidth * (1.0 - r / galaxyRadius) * (radiusDis(gen) - 0.5);
+            theta += fuzziness;
+
+            // Convert to Cartesian coordinates
+            float x = r * std::cos(theta);
+            float y = r * std::sin(theta);
+            float z = heightDis(gen);  // Gives the galaxy some thickness
+
+            glm::vec3 position = center + glm::vec3(x, y, z);
+
+            // Calculate orbital velocity
+            float orbitalSpeed = std::sqrt(g * r);  // Assuming mass is proportional to radius
+            glm::vec3 velocity(-y, x, 0);  // Perpendicular to radius
+            velocity = glm::normalize(velocity) * orbitalSpeed;
+
+            // Add some random velocity for natural dispersion
+            velocity += glm::ballRand(0.1f * orbitalSpeed);
+
+            add_Particle(position, velocity);
+        }
+    }
+
     std::vector<Particle> p_objects;
 
     uint32_t m_sub_steps;
@@ -65,7 +119,9 @@ class Simulation{
         m_time += m_frame_dt;
         const float step_dt = getStepDt();
         for (uint32_t i{m_sub_steps}; i--;) {
-            calculateGravityOrbit();
+            // calculateGravityOrbit();
+            calculateGravityBarnesHuntSIMD();
+            // calculateGravityBarnesHut();
             updateMotion(step_dt);
         }
         // debug();
@@ -119,6 +175,21 @@ class Simulation{
         }
     }
 
+
+        void calculateGravityBarnesHut() {
+        octree.build(p_objects);
+        for (auto& p : p_objects) {
+          glm::vec3 force = octree.calculateForce(&p, g);
+            p.addForce(force);
+        }
+    }
+        void calculateGravityBarnesHuntSIMD(){
+            oct.build(p_objects);
+            for(auto& p : p_objects){
+                glm::vec3 force = oct.calculateForce(&p, g);
+                p.addForce(force);
+            }
+        }
 
     void setSimulationUpdateRate(uint32_t rate)
     {

@@ -17,6 +17,7 @@
 #include <iostream>
 
 
+
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
@@ -49,7 +50,8 @@ std::string Model_VertexShaderPath   = std::string(SHADER_DIR) + "/vertex.glsl";
     Simulation sim;
 
     // Add some particles to the simulation
-    sim.addParticlesInSphere(100,5.0f,glm::vec3(0.0f,0.0f,0.0f));
+    // sim.addParticlesInSphere(500,2.0f,glm::vec3(0.0f,0.0f,0.0f));
+    sim.addSpiralGalaxy(1000,1.5,2,3,glm::vec3(0.0,0.0,0.0));
     // sim.initializeGalaxy(200,200,200);
     sim.setSubsStepscount(10);
     sim.setSimulationUpdateRate(60);

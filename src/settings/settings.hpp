@@ -5,7 +5,7 @@
 
 struct SystemSettings{
 
-    glm::vec2 WindowSize{1000,1000};
+    glm::vec2 WindowSize{1980,1080};
     std::string Window_Name = "Grav System";
 
 };

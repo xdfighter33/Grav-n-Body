@@ -116,7 +116,7 @@ public:
     }
 
 
-        void useShader() const {
+    void useShader() const {
         shader->use();
     }
 

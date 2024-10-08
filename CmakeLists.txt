@@ -1,11 +1,23 @@
 cmake_minimum_required(VERSION 3.20)
 set(PROJECT_NAME Galaxy_Sim)
 project(${PROJECT_NAME})
+set(CMAKE_BUILD_TYPE debug)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(SOURCES main.cpp)
+
 include(FetchContent)
+
+# Check for ARM architecture and NEON support
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-mfpu=neon" NEON_AVAILABLE)
+    if(NEON_AVAILABLE)
+        add_definitions(-DUSE_NEON)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpu=neon")
+    endif()
+endif()
 
 # Function to declare content with local fallback
 function(declare_local_or_remote NAME LOCAL_DIR REPO_URL TAG)
@@ -30,11 +42,13 @@ declare_local_or_remote(glad ${CMAKE_CURRENT_SOURCE_DIR}/LIBS/glad https://githu
 declare_local_or_remote(glm ${CMAKE_CURRENT_SOURCE_DIR}/LIBS/glm https://github.com/g-truc/glm.git 0.9.9.8)
 declare_local_or_remote(imgui ${CMAKE_CURRENT_SOURCE_DIR}/LIBS/imgui https://github.com/ocornut/imgui.git v1.89.2)
 
+
 FetchContent_MakeAvailable(glfw glad glm imgui)
 
+
 # Add an executable
-add_executable(${PROJECT_NAME} 
-   src/main.cpp
+add_executable(${PROJECT_NAME}
+    src/main.cpp
 )
 
 # Include ImGui
@@ -65,5 +79,11 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/models DESTINATION ${CMAKE_CURRENT_BINARY_
 get_filename_component(MODELS_ABSOLUTE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/models" ABSOLUTE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MODELS_DIR="${MODELS_ABSOLUTE_PATH}")
 
-# Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad glm::glm)
+# Link libraries and add OpenMP
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    glfw 
+    glad 
+    glm::glm
+)
+
+# Add OpenMP compile options

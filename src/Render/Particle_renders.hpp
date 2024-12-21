@@ -1,9 +1,11 @@
+#pragma once 
 #include <iostream>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "../Shaders/shader_loading.h"
+#include "../Physics/particle.hpp"
 
 
 struct Texture {
@@ -14,16 +16,38 @@ struct Texture {
 
 
 class P_Renderer {
+
     float vertices[24] = {
-        -0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f
+
+            -0.5f, -0.5f, -0.5f,
+
+             0.5f, -0.5f, -0.5f,
+
+             0.5f,  0.5f, -0.5f,
+
+            -0.5f,  0.5f, -0.5f,
+
+            -0.5f, -0.5f,  0.5f,
+
+             0.5f, -0.5f,  0.5f,
+
+             0.5f,  0.5f,  0.5f,
+
+            -0.5f,  0.5f,  0.5f
+
+    };  
+    float Instanced_vertices[40] = {
+        // positions         // texture coords
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, 1.0f,  0.0f, 0.0f,
+         0.5f, -0.5f, 1.0f,  1.0f, 0.0f,
+         0.5f,  0.5f, 1.0f,  1.0f, 1.0f,
+        -0.5f,  0.5f, 1.0f,  0.0f, 1.0f
     };
+
     unsigned int indices[36] = {
         0, 1, 2, 2, 3, 0,
         1, 5, 6, 6, 2, 1,
@@ -32,10 +56,11 @@ class P_Renderer {
         3, 2, 6, 6, 7, 3,
         4, 5, 1, 1, 0, 4
     };
-    unsigned int VAO, VBO, EBO;
+    unsigned int VAO, VBO, EBO, instanceVBO;
     unsigned int shaderProgram;
     unsigned int textureVAO, textureVBO;
     unsigned int particleTexture;
+
     Shader* shader;
     Texture frameBufferTexture[4] = {
         {glm::vec3(-1.0f,  1.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
@@ -44,6 +69,26 @@ class P_Renderer {
         {glm::vec3(1.0f, -1.0f, 0.0f), glm::vec2(1.0f, 0.0f)}
     };
     
+    void setupInstanceBuffer() {
+        // Generate instance VBO first
+        glGenBuffers(1, &instanceVBO);
+
+        // Bind the correct VAO before setting up instance attributes
+        glBindVertexArray(VAO);
+
+        // Bind and setup instance buffer
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 4000, nullptr, GL_DYNAMIC_DRAW);
+
+        // Setup instance attributes
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        glVertexAttribDivisor(2, 1);
+
+        // Cleanup
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
 
     void setupBuffers() {
         // Setup for cube
@@ -51,24 +96,35 @@ class P_Renderer {
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
         glBindVertexArray(VAO);
+
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Instanced_vertices), Instanced_vertices, GL_STATIC_DRAW);
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+        // Position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-        
-        // Setup for texture quad
-        glGenVertexArrays(1, &textureVAO);
-        glGenBuffers(1, &textureVBO);
+
+        // Texture coordinate attribute
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        // Bind default VAO for texture quad setup
         glBindVertexArray(textureVAO);
         glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(frameBufferTexture), frameBufferTexture, GL_STATIC_DRAW);
+
+        // Position attribute for texture quad
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Texture), (void*)0);
         glEnableVertexAttribArray(0);
+
+        // Texture coordinates for texture quad
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Texture), (void*)(sizeof(glm::vec3)));
         glEnableVertexAttribArray(1);
 
+        // Cleanup
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
@@ -76,7 +132,7 @@ class P_Renderer {
     void setupTextures() {
         glGenTextures(1, &particleTexture);
         glBindTexture(GL_TEXTURE_2D, particleTexture);
-        
+
         // Create a simple circular particle texture
         int texWidth = 32, texHeight = 32;
         std::vector<unsigned char> textureData(texWidth * texHeight * 4, 0);
@@ -96,11 +152,20 @@ class P_Renderer {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData.data());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     }
 
+
 public: 
+
+
+
+
     P_Renderer(const std::string VertexPath, const std::string FragmentPath) {
         setupBuffers();
+        setupInstanceBuffer();
         setupTextures();
         shader = new Shader(VertexPath,FragmentPath);
     }
@@ -109,11 +174,37 @@ public:
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
         glDeleteBuffers(1, &EBO);
+        glDeleteBuffers(1, &instanceVBO);
         glDeleteVertexArrays(1, &textureVAO);
         glDeleteBuffers(1, &textureVBO);
         glDeleteTextures(1, &particleTexture);
+       
         delete shader;
     }
+
+
+
+
+    void initialize() {
+        setupBuffers();
+        setupInstanceBuffer();
+    }
+
+
+
+    void updateInstanceData(const ParticleData& particles) {
+        glBindVertexArray(VAO);  // Add this line
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+            particles.count * sizeof(glm::vec3),
+            particles.positions.data(),
+            GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);  // Add this line
+    //    glBindVertexArray(0);  // Add this line
+
+        
+    }
+
 
 
         void useShader() const {
@@ -128,6 +219,10 @@ public:
         shader->setInt(name, value);
     }
 
+
+    unsigned int getVAO() {
+        return VAO;
+    }
     unsigned int getParticleTexture() const {
         return particleTexture;
     }

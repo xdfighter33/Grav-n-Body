@@ -56,13 +56,13 @@ class P_Renderer {
         3, 2, 6, 6, 7, 3,
         4, 5, 1, 1, 0, 4
     };
-    unsigned int VAO, VBO, EBO, instanceVBO;
+    unsigned int VAO, VBO, EBO, instanceVBO, InstanceMassVBO, InstanceVelocityVBO;
     unsigned int shaderProgram;
     unsigned int textureVAO, textureVBO;
     unsigned int particleTexture;
 
     Shader* shader;
-    Texture frameBufferTexture[4] = {
+Texture frameBufferTexture[4] = {
         {glm::vec3(-1.0f,  1.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
         {glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
         {glm::vec3(1.0f,  1.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
@@ -70,25 +70,39 @@ class P_Renderer {
     };
     
     void setupInstanceBuffer() {
-        // Generate instance VBO first
-        glGenBuffers(1, &instanceVBO);
-
-        // Bind the correct VAO before setting up instance attributes
-        glBindVertexArray(VAO);
-
-        // Bind and setup instance buffer
-        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 4000, nullptr, GL_DYNAMIC_DRAW);
-
-        // Setup instance attributes
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        glVertexAttribDivisor(2, 1);
-
-        // Cleanup
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
+    // Generate instance VBOs
+    glGenBuffers(1, &instanceVBO);
+    glGenBuffers(1, &InstanceMassVBO);
+    glGenBuffers(1, &InstanceVelocityVBO);
+    
+    // Bind the VAO
+    glBindVertexArray(VAO);
+    
+    // Setup position instance attributes
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 4000, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+    glVertexAttribDivisor(2, 1);
+    
+    // Setup mass instance attributes
+    glBindBuffer(GL_ARRAY_BUFFER, InstanceMassVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4000, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+    glVertexAttribDivisor(3, 1);
+    
+    // Setup velocity instance attributes
+    glBindBuffer(GL_ARRAY_BUFFER, InstanceVelocityVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 4000, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+    glVertexAttribDivisor(4, 1);
+    
+    // Cleanup
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
 
     void setupBuffers() {
         // Setup for cube
@@ -164,9 +178,8 @@ public:
 
 
     P_Renderer(const std::string VertexPath, const std::string FragmentPath) {
-        setupBuffers();
-        setupInstanceBuffer();
-        setupTextures();
+        initialize();
+
         shader = new Shader(VertexPath,FragmentPath);
     }
 
@@ -175,6 +188,8 @@ public:
         glDeleteBuffers(1, &VBO);
         glDeleteBuffers(1, &EBO);
         glDeleteBuffers(1, &instanceVBO);
+        glDeleteBuffers(1, &InstanceMassVBO);
+        glDeleteBuffers(1, &InstanceVelocityVBO);
         glDeleteVertexArrays(1, &textureVAO);
         glDeleteBuffers(1, &textureVBO);
         glDeleteTextures(1, &particleTexture);
@@ -188,18 +203,37 @@ public:
     void initialize() {
         setupBuffers();
         setupInstanceBuffer();
+        setupTextures();
     }
 
 
 
     void updateInstanceData(const ParticleData& particles) {
-        glBindVertexArray(VAO);  // Add this line
+        glBindVertexArray(VAO);  
         glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
         glBufferData(GL_ARRAY_BUFFER,
             particles.count * sizeof(glm::vec3),
             particles.positions.data(),
             GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);  // Add this line
+
+
+
+        glBindBuffer(GL_ARRAY_BUFFER, InstanceMassVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+            particles.count * sizeof(float),
+            particles.masses.data(),
+            GL_DYNAMIC_DRAW);
+            
+
+
+        glBindBuffer(GL_ARRAY_BUFFER, InstanceVelocityVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+            particles.count * sizeof(glm::vec3),
+            particles.velocities.data(),
+            GL_DYNAMIC_DRAW);
+
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0); 
     //    glBindVertexArray(0);  // Add this line
 
         

@@ -76,7 +76,7 @@ public:
 
             m_particle_data.positions[idx] = center + glm::vec3(x, y, z);
             m_particle_data.velocities[idx] = glm::vec3(2.0f);
-            m_particle_data.masses[idx] = 1.0f;
+            m_particle_data.masses[idx] = 0.05f;
         }
     }
 

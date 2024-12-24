@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #define _USE_MATH_DEFINES
 #include <glm/glm.hpp>
 #include "particle.hpp"
@@ -22,7 +22,7 @@ public:
     uint32_t m_sub_steps;
     float m_time = 0.0f;
     float m_frame_dt = 0.0f;
-    float G = .001f;
+    float G = .01f;
     // Legacy OOP methods
     void add_particle_oop(glm::vec3 pos, glm::vec3 vel) {
         Particle p;
@@ -126,7 +126,65 @@ public:
         m_particle_data.accelerations[idx] = glm::vec3(0.0f);
         m_particle_data.forces[idx] = glm::vec3(0.0f);
     }
-}
+}   
+
+    void add_spiral_pattern_dod(int num_rings, int dots_per_ring, float max_radius, const glm::vec3& center) {
+        // Debug prints to verify particle creation
+        std::cout << "Creating spiral with rings: " << num_rings << ", dots per ring: " << dots_per_ring << std::endl;
+
+        int total_particles = 0;
+        for (int ring = 0; ring < num_rings; ring++) {
+            int ring_dots = (ring + 1) * dots_per_ring;
+            total_particles += ring_dots;
+        }
+
+        std::cout << "Total particles to create: " << total_particles << std::endl;
+
+        m_particle_data.reserve(total_particles);
+        size_t current_size = m_particle_data.count;
+        m_particle_data.allocate(current_size + total_particles);
+
+        size_t particle_index = current_size;
+
+        // Create particles ring by ring
+        for (int ring = 0; ring < num_rings; ring++) {
+            // Scale down the radius significantly to match camera view
+            float ring_radius = (max_radius * ((float)(ring + 1) / num_rings)) * 0.5f;
+            int ring_dots = (ring + 1) * dots_per_ring;
+
+            // Debug first and last particle of each ring
+            if (ring == 0 || ring == num_rings - 1) {
+    //            std::cout << "Ring " << ring << " radius: " << ring_radius << std::endl;
+            }
+
+            for (int dot = 0; dot < ring_dots; dot++) {
+                float angle = (2.0f * M_PI * dot) / ring_dots;
+
+                glm::vec3 position = center + glm::vec3(
+                    ring_radius * cos(angle),
+                    0.0f,
+                    ring_radius * sin(angle)
+                );
+
+                // Debug first particle position of first and last ring
+                if (dot == 0 && (ring == 0 || ring == num_rings - 1)) {
+  //                  std::cout << "Particle pos: " << position.x << ", " << position.y << ", " << position.z << std::endl;
+                }
+
+                m_particle_data.positions[particle_index] = position;
+                m_particle_data.velocities[particle_index] = glm::vec3(0.0f);
+                m_particle_data.masses[particle_index] = 1.0f;
+                m_particle_data.accelerations[particle_index] = glm::vec3(0.0f);
+                m_particle_data.forces[particle_index] = glm::vec3(0.0f);
+
+                particle_index++;
+            }
+        }
+
+//        std::cout << "Final particle count: " << m_particle_data.count << std::endl;
+    }
+
+
     void add_particles_in_sphere_oop(int num_particles, float radius, const glm::vec3& center) {
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -180,39 +238,30 @@ private:
     }
 
     void calculate_gravity_orbit() {
-    const float softening = 0.0f;  // Increased softening for stability
-    
-    // Reset forces
-    m_particle_data.reset_forces();
+        const float angular_velocity = 0.005f;  // Controls rotation speed
+        const glm::vec3 center(0.0f, 0.0f, 0.0f);
 
-    // Calculate gravitational forces between all pairs of particles
-    for (size_t i = 0; i < m_particle_data.count; ++i) {
-        for (size_t j = i + 1; j < m_particle_data.count; ++j) {
-            glm::vec3 r = m_particle_data.positions[j] - m_particle_data.positions[i];
-            float distance_squared = glm::dot(r, r) + softening;
-            
-            // Skip if particles are too close
-            if (distance_squared < softening) continue;
-            
-            float distance = std::sqrt(distance_squared);
-            
-            // Calculate force with distance-dependent softening
-            float force_magnitude = G * (m_particle_data.masses[i] * m_particle_data.masses[j]) 
-                                  / distance_squared;
-            
-            glm::vec3 force = force_magnitude * (r / distance);
-            
-            // Apply forces
-            m_particle_data.forces[i] += force;
-            m_particle_data.forces[j] -= force;
+        // Reset forces since Verlet uses forces to update velocities and positions
+        m_particle_data.reset_forces();
+
+        for (size_t i = 0; i < m_particle_data.count; ++i) {
+            glm::vec3 r = m_particle_data.positions[i] - center;
+            float radius = glm::length(r);
+
+            if (radius < 0.001f) continue;
+
+            // For uniform circular motion with Verlet, we need centripetal force
+            // F = mv²/r where v = ω * r
+            float v = angular_velocity * radius;  // Tangential velocity
+            float force_magnitude = m_particle_data.masses[i] * v * v / radius;
+
+            // Force points toward center for circular motion
+            glm::vec3 force = -normalize(r) * force_magnitude;
+            m_particle_data.forces[i] = force;
         }
     }
 
-    // Calculate accelerations
-    for (size_t i = 0; i < m_particle_data.count; ++i) {
-        m_particle_data.accelerations[i] = m_particle_data.forces[i] / m_particle_data.masses[i];
-    }
-}
+
 
 
 

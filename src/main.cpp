@@ -50,9 +50,16 @@ std::string Model_VertexShaderPath   = std::string(SHADER_DIR) + "/vertex.glsl";
 
     // Add some particles to the simulation
     // sim.add_particles_in_sphere_dod(1000,10.0f,glm::vec3(0.0f,0.0f,0.0f));
-    sim.add_spiral_galaxy_dod(1000,5.0,glm::vec3(0,0,0));
+   // sim.add_spiral_galaxy_dod(2000,5.0,glm::vec3(0,0,0));
+    sim.add_spiral_pattern_dod(
+        7,         // number of rings
+        20,         // base dots per ring (each ring will get proportionally more)
+        20.0f,       // maximum radius
+        glm::vec3(2.5, 0.0f, 0.0f)  // center position
+    );
+
     // sim.initializeGalaxy(200,200,200);
-    sim.set_sub_steps_count(10);
+    sim.set_sub_steps_count(12);
     sim.set_simulation_update_rate(60);
 
 

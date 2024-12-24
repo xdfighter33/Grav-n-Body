@@ -14,7 +14,7 @@ uniform mat4 projection;
 void main()
 {
 
-    vec3 worldPos = vec3(aMass) * aPos + aOffsetPosition;
+    vec3 worldPos = vec3(0.05) * aPos + aOffsetPosition;
     
     TexCoords = aTexCoords;
     gl_Position = projection * view * vec4(worldPos, 1.0);

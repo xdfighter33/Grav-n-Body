@@ -63,6 +63,12 @@ void integrate_particles(ParticleData& particles, float dt) {
     for (size_t i = 0; i < particles.count; ++i) {
         particles.velocities[i] += 0.5f * (old_accelerations[i] + particles.accelerations[i]) * dt;
     }
+
+
+
+
+
+
 }
 
 

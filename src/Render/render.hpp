@@ -108,7 +108,10 @@ public:
 
         // Enable blending
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_ONE, GL_ONE); // Pure additive blending
+
 
         // Render both OOP and DOD particles
         glBindVertexArray(renderer->getTextureVAO());

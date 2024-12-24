@@ -234,8 +234,6 @@ public:
 
 
         glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    //    glBindVertexArray(0);  // Add this line
-
         
     }
 
